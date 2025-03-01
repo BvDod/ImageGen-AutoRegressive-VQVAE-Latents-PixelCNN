@@ -15,9 +15,19 @@ class VQVAE(torch.nn.Module):
         self.VQ = VectorQuantisizer(model_settings)
         self.decoder = Decoder(model_settings)
 
-    def forward(self, x):
-        x = self.encoder(x)
-        quantized, vq_loss, discrete_embedding = self.VQ(x)
+    def forward(self, x, decode_discrete_mode=False):
+        
+        # Normal full model
+        if not decode_discrete_mode:
+            x = self.encoder(x)
+            quantized, vq_loss, discrete_embedding = self.VQ(x)
+
+        # Only decode discrete embeddings
+        else:
+            quantized = self.VQ.discrete_to_quantized(x)
+            quantized = torch.movedim(quantized, -1, 1)
+            vq_loss = None
+            
         x = self.decoder(quantized)
         return x, vq_loss
 

@@ -30,27 +30,23 @@ model.to(device)
 with torch.no_grad():
     ### Generate random latents to decode
     embeddings_to_use = list(input_data.unique())                       # Only use discrete latents that actually occur in the actuial latents
-    latent_input = numpy.random.choice(embeddings_to_use, (64,64,64))   # Generate new random latents using discrete values it knows
+    latent_input = numpy.random.choice(embeddings_to_use, (9,64,64))   # Generate new random latents using discrete values it knows
     latent_input = torch.from_numpy(latent_input)
     latent_input = latent_input.to(device)
     latent_input = torch.nn.functional.one_hot(latent_input.long(), num_classes=512) # Convert to onehot
     # Decode random latents
-    quantized = model.VQ.discrete_to_quantized(latent_input)
-    quantized = torch.movedim(quantized, -1, 1)
-    reconstruction = model.decoder(quantized)
+    reconstruction, _ = model(latent_input, decode_discrete_mode=True)
     # Show generated samples
-    grid = torchvision.utils.make_grid(reconstruction, nrow=8)
+    grid = torchvision.utils.make_grid(reconstruction, nrow=3)
     img = torchvision.transforms.ToPILImage()(grid) 
-    img.show() 
+    img.save("random.png")  
 
     ### Compare with decoded latents from validation dataset
-    latent_input = torch.nn.functional.one_hot(input_data[:64,:,:].long(), num_classes=512)
+    latent_input = torch.nn.functional.one_hot(input_data[:9,:,:].long(), num_classes=512)
     latent_input = latent_input.to(device)
     # Decode
-    quantized = model.VQ.discrete_to_quantized(latent_input)
-    quantized = torch.movedim(quantized, -1, 1)
-    reconstruction = model.decoder(quantized)
+    reconstruction, _ = model(latent_input, decode_discrete_mode=True)
     # Show generated samples
-    grid = torchvision.utils.make_grid(reconstruction, nrow=8)
+    grid = torchvision.utils.make_grid(reconstruction, nrow=3)
     img = torchvision.transforms.ToPILImage()(grid) 
-    img.show() 
+    img.save("validation.png") 
