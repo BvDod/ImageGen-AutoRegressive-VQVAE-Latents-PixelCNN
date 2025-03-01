@@ -4,3 +4,4 @@ This projects aims to be able to generate new realistic looking images by creati
 The VQ-VAE implementation and models used in this project have been created by me under another Github repository (Link)
 
 I will be implementing and comparing a PixelCNN model, and a vision Transformer Model.
+![image](figures/Untitled.png)
