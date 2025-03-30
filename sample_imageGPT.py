@@ -18,39 +18,49 @@ def train_imageGPT(settings_imageGPT, settings_VQVAE):
 
     device = "cpu"
     print(f"Device: {device}" + "\n")
-
+    """
     # Load models
     model_settings_imageGPT = settings_imageGPT["model_settings"]
     model_settings_imageGPT["num_channels"] =  1
     model_settings_imageGPT["input_shape"] = (32,32)
     model_settings_imageGPT["device"] = device
     model_autoregressive = ImageGPT(model_settings_imageGPT)
-    model_autoregressive.load_state_dict(torch.load("models/saved_models/celebA/model_best(222).pt", map_location=torch.device('cpu'), weights_only=True))
+    model_autoregressive.load_state_dict(torch.load("model_latest.pt", map_location=torch.device('cpu'), weights_only=True))
     model_autoregressive.to(device)
 
-    image_tokens = torch.Tensor()
-    padding_tokens = np.zeros((9,1), dtype=torch.long)
-    for i in range((32*32)):
-        input_tokens = torch.cat((image_tokens, padding_tokens))
-        prediction = model_autoregressive(input_tokens)
-        logits = prediction[:, -1, :]
+    model_autoregressive.eval()
 
-        probs = nn.functional.softmax(logits, dim=-1)  
-        pred = torch.multinomial(probs, num_samples=1)
-        
+    with torch.no_grad():
+        image_tokens = torch.Tensor().long()
+        padding_tokens = torch.zeros((1,1), dtype=torch.long)
+        for i in range((32*32)):
+
+            input_tokens = torch.cat((image_tokens, padding_tokens), dim=1)
+            prediction = model_autoregressive(input_tokens, flat_mode=True)
+            logits = prediction[:, -1, :]
+            probs = nn.functional.softmax(logits, dim=-1)
+            pred = torch.multinomial(probs, num_samples=1)
+            image_tokens = torch.cat((image_tokens, pred), dim=1)
+            if i % 100 == 0:
+                print(i)
+
+         
+    """
     
     model_settings_VQVAE = settings_VQVAE["model_settings"]
     model_settings_VQVAE["num_channels"] =  3
-    model_settings_VQVAE["input_shape"] = (32,32)
+    model_settings_VQVAE["input_shape"] = (256,256)
     model_settings_VQVAE["device"] = device
     
     model_VQVAE = VQVAE(model_settings_VQVAE)
     model_VQVAE.load_state_dict(torch.load("models/saved_models/celebA/model_best(222).pt", map_location=torch.device('cpu'), weights_only=True))
     model_VQVAE.to(device)
+    model_VQVAE.eval()
 
-    outputs = model_VQVAE.decode_latents(image_tokens)
+    with torch.no_grad():
+        outputs = model_VQVAE.decode_latents(image_tokens)
 
-    grid = plot_grid_samples_tensor(outputs[:9].cpu())
+    grid = plot_grid_samples_tensor(outputs[:1].cpu())
     
     foldername = "generated_samples/"
     grid = grid.movedim(0,-1)
@@ -85,7 +95,7 @@ if __name__ == "__main__":
         "model_settings" : {
             "encoder_architecture": "VIT",
             "decoder_architecture": "VIT",
-            "num_hidden": 128,
+            "num_hidden": 64,
             "num_residual_hidden": 128,
             "embedding_dim": 64,
             "num_embeddings": 512,

@@ -39,7 +39,7 @@ class PositionalEmbedding(nn.Module):
         self.embedding = nn.Embedding(num_embeddings=self.num_embeddings, embedding_dim=self.embedding_dim, device=self.device)
 
     def forward(self, x):
-        positional_ints = torch.arange(0, self.num_embeddings, requires_grad=False, device=self.device
+        positional_ints = torch.arange(0, x.shape[1], requires_grad=False, device=self.device
                                        ).repeat(x.shape[0], 1)
         embedding = self.embedding(positional_ints)
         return embedding
@@ -56,18 +56,12 @@ class TransformerBlock(nn.Module):
         hidden_dim = self.embedding_dim * 4
         self.causal = causal
         self.device = model_settings["device"]
-        self.context_length = model_settings["context_length"]
 
         self.layer_norm_1 = nn.LayerNorm(self.embedding_dim)
         self.attention = nn.MultiheadAttention(self.embedding_dim, self.heads,
                                           dropout=dropout, batch_first=True)
         self.layer_norm_2 = nn.LayerNorm(self.embedding_dim)
-        
-        if self.causal:
-            seq_len = self.context_length + 1 # for sos
-            attention_mask = torch.full((seq_len,seq_len), -float("Inf"), device=self.device)
-            self.attention_mask = torch.triu(attention_mask, diagonal=1)
-        
+
 
         self.linear = nn.Sequential(
             nn.Linear(self.embedding_dim, hidden_dim),
@@ -82,6 +76,9 @@ class TransformerBlock(nn.Module):
         if not self.causal:
             x = x_in + self.attention(x, x, x)[0]
         elif self.causal:
+            seq_len = x.shape[1] # for sos
+            attention_mask = torch.full((seq_len,seq_len), -float("Inf"), device=self.device)
+            self.attention_mask = torch.triu(attention_mask, diagonal=1)
             x = x_in + self.attention(x, x, x, attn_mask=self.attention_mask)[0]
 
         x = x + self.linear(self.layer_norm_2(x))

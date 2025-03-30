@@ -30,7 +30,7 @@ class ImageGPT(torch.nn.Module):
     
     def get_sos_token_embeddings(self, shape):
         sos_tokens = torch.full(shape, self.vocabulary_size)
-        sos_token = self.embedding(sos_token)
+        sos_tokens = self.embedding(sos_tokens)
         return sos_tokens
 
 
@@ -44,14 +44,15 @@ class ImageGPT(torch.nn.Module):
         x = self.positional_embedding(x) + x
 
         # Adding sos token to start of each images
+        
         sos_embeddings = self.get_sos_token_embeddings((x.shape[0], 1))
         x = torch.concat([sos_embeddings, x], dim=1)
-
+        
         x = self.transformers(x)
         x = self.decoder_head(x)[:,1:,] # remove SOS
         if not flat_mode:
             x = x.reshape((x.shape[0], original_shape[1], original_shape[2], self.vocabulary_size)) # 1d to 2d
-        x = x.movedim(-1, 1)
+            x = x.movedim(-1, 1)
         return x
         
         
