@@ -1,7 +1,14 @@
-# Image Generation: Auto-reggression of VQ-VAE latents (in PyTorch)
-This projects aims to be able to generate new realistic looking images by creating models which can auto-regressively predict new latent spaces in a VQ-VAE model. The VQ-VAE can then be used to decode said latent space in a realistic image. 
+# Image Generation: ImageGPT on VQ-VAE latents
 
-The VQ-VAE implementation and models used in this project have been created by me under another Github repository (Link)
+In this repository, I generate new high-resolution faces by Implementing an ImageGPT-inspired model to autoregressively predict new latents for a ViT-based VQ-VAE I implemented and trained on the CelebA-HQ dataset in an earlier project. (link to project.)
 
-I will be implementing and comparing a PixelCNN model, and a vision Transformer Model.
-![image](figures/Untitled.png)
+Since the latent-space of the VQ-VAE is so much smaller than the original image (256x256 vs 32x32), and discretized, auto-regressive prediction and sampling of new samples is a lot more manageable. The newly synthesizsed discretized latent spaces can than be upsampled to high-resolution color-images, by decoding them using the VQ-VAE
+
+## Introduction
+
+
+## Results: Generating new samples
+
+## Results: Inpainting
+
+##

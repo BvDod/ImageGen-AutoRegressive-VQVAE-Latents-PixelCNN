@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 import math
+from models.vq_vae_vit import EncoderVIT
+from models.vq_vae_vit import DecoderVIT
 
 
 class VQVAE(torch.nn.Module):
@@ -11,23 +13,36 @@ class VQVAE(torch.nn.Module):
         super(VQVAE, self).__init__()
         self.model_settings = model_settings
         
-        self.encoder = Encoder(model_settings)
-        self.VQ = VectorQuantisizer(model_settings)
-        self.decoder = Decoder(model_settings)
-
-    def forward(self, x, decode_discrete_mode=False):
-        
-        # Normal full model
-        if not decode_discrete_mode:
-            x = self.encoder(x)
-            quantized, vq_loss, discrete_embedding = self.VQ(x)
-
-        # Only decode discrete embeddings
+        if model_settings["encoder_architecture"] == "VIT":
+            self.encoder = EncoderVIT(model_settings)
+            model_settings["num_patches"] = self.encoder.patch_embedding.num_patches
+        elif model_settings["encoder_architecture"] == "CNN":
+            self.encoder = Encoder(model_settings)
         else:
-            quantized = self.VQ.discrete_to_quantized(x)
-            quantized = torch.movedim(quantized, -1, 1)
-            vq_loss = None
-            
+            print("Error: unsupported encoder")
+            exit()
+
+        self.VQ = VectorQuantisizer(model_settings)
+
+        if model_settings["decoder_architecture"] == "VIT":
+            self.decoder = DecoderVIT(model_settings)
+        elif model_settings["decoder_architecture"] == "CNN":
+            self.decoder = Decoder(model_settings)
+        else:
+            print("Error: unsupported decoder")
+            exit()
+    
+    def decode_latents(self, discrete_latents):
+        print(discrete_latents.shape)
+        discrete_latents = torch.nn.functional.one_hot(discrete_latents.long(), num_classes=512) # Convert to onehot
+        quantized = self.VQ.discrete_to_quantized(discrete_latents)
+        print(quantized.shape)
+        x = self.decoder(quantized)
+        return x
+
+    def forward(self, x):
+        x = self.encoder(x)
+        quantized, vq_loss, discrete_embedding = self.VQ(x)
         x = self.decoder(quantized)
         return x, vq_loss
 
@@ -47,7 +62,8 @@ class Encoder(torch.nn.Module):
             nn.ReLU(),
             nn.Conv2d(num_hidden//2, num_hidden, stride=2, kernel_size=4, padding=1),
             nn.ReLU(),
-            nn.Conv2d(num_hidden, num_hidden, stride=1, kernel_size=3, padding=1),
+            nn.Conv2d(num_hidden, num_hidden, stride=2, kernel_size=3, padding=1),
+
             ResidualLayer(num_hidden, num_hidden, num_residual_hidden),
             ResidualLayer(num_hidden, num_hidden, num_residual_hidden),   
             nn.ReLU(),       
@@ -71,9 +87,11 @@ class VectorQuantisizer(torch.nn.Module):
         max = math.sqrt(3/self.num_embeddings) # See Tensorflowv1:UniformUnitScaling code, amounts to this.
         nn.init.uniform_(self.embeddings.weight, -max, max)
 
-    def discrete_to_quantized(self, discrete_embedding):
-        quantized = discrete_embedding.float() @ self.embeddings.weight
-        return quantized
+    def discrete_to_quantized(self, x):
+        quantized = x.float() @ self.embeddings.weight
+        return quantized.movedim(-1, 1)
+
+
 
     def forward(self, x):
         x = torch.movedim(x, 1, -1) # Move channel dimension to last dim
@@ -123,6 +141,8 @@ class Decoder(torch.nn.Module):
             nn.Conv2d(embedding_dim, num_hidden, stride=1, kernel_size=3, padding=1),
             ResidualLayer(num_hidden, num_hidden, num_residual_hidden),
             ResidualLayer(num_hidden, num_hidden, num_residual_hidden),
+            nn.ReLU(),
+            nn.ConvTranspose2d(num_hidden, num_hidden, stride=2, kernel_size=4, padding=1),
             nn.ReLU(),
             nn.ConvTranspose2d(num_hidden, num_hidden//2 ,kernel_size=4, stride=2, padding=1),
             nn.ReLU(),

@@ -11,41 +11,46 @@ input_data = torch.load(dir + "discrete.pt")
 
 # Load model
 model_settings = {
-    "num_channels": 1,
-    "input_shape": (256,256),
-    "num_hidden": 64,
-    "num_residual_hidden": 32,
-    "embedding_dim": 64,
-    "num_embeddings": 512,
-    "commitment_cost": 0.5,
-}
-device = "cuda" if torch.cuda.is_available else "cpu"
+            "encoder_architecture": "VIT",
+            "decoder_architecture": "VIT",
+            "num_hidden": 128,
+            "num_residual_hidden": 128,
+            "embedding_dim": 64,
+            "num_embeddings": 512,
+            "commitment_cost": 0.25,
+            "transformer_layers": 5,
+            "attention_heads": 4,
+            "patch_size": 8,
+    }
+device = "cpu"
 print(f"Device: {device}" + "\n")
 
 # Load model
+model_settings["num_channels"] =  3
+model_settings["input_shape"] = (256, 256)
 model = VQVAE(model_settings=model_settings)
-model.load_state_dict(torch.load("models/saved_models/x-ray/model.pt", weights_only=True))
+model.load_state_dict(torch.load("models/saved_models/celebA/model_best(222).pt", map_location=torch.device('cpu'), weights_only=True))
 model.to(device)
 
+model.eval()
 with torch.no_grad():
     ### Generate random latents to decode
     embeddings_to_use = list(input_data.unique())                       # Only use discrete latents that actually occur in the actuial latents
-    latent_input = numpy.random.choice(embeddings_to_use, (9,64,64))   # Generate new random latents using discrete values it knows
+    latent_input = numpy.random.choice(embeddings_to_use, (1,32,32))   # Generate new random latents using discrete values it knows
     latent_input = torch.from_numpy(latent_input)
     latent_input = latent_input.to(device)
-    latent_input = torch.nn.functional.one_hot(latent_input.long(), num_classes=512) # Convert to onehot
     # Decode random latents
-    reconstruction, _ = model(latent_input, decode_discrete_mode=True)
+    reconstruction = model.decode_latents(latent_input)
     # Show generated samples
     grid = torchvision.utils.make_grid(reconstruction, nrow=3)
     img = torchvision.transforms.ToPILImage()(grid) 
     img.save("random.png")  
 
     ### Compare with decoded latents from validation dataset
-    latent_input = torch.nn.functional.one_hot(input_data[:9,:,:].long(), num_classes=512)
+    latent_input = input_data[2:3,:32,:32]
     latent_input = latent_input.to(device)
     # Decode
-    reconstruction, _ = model(latent_input, decode_discrete_mode=True)
+    reconstruction = model.decode_latents(latent_input)
     # Show generated samples
     grid = torchvision.utils.make_grid(reconstruction, nrow=3)
     img = torchvision.transforms.ToPILImage()(grid) 
