@@ -4,6 +4,7 @@ import torch.nn.functional as F
 import numpy as np
 
 
+
 class PatchEmbedding(nn.Module):
     def __init__(self, model_settings):
         """ 
@@ -26,10 +27,10 @@ class PatchEmbedding(nn.Module):
         
     
         return x
-
-
+    
 class PositionalEmbedding(nn.Module):
     def __init__(self, patch_embeddings, model_settings):
+
         super(PositionalEmbedding, self).__init__()
         self.num_embeddings = patch_embeddings 
         self.embedding_dim = model_settings["embedding_dim"]
@@ -38,17 +39,16 @@ class PositionalEmbedding(nn.Module):
         self.embedding = nn.Embedding(num_embeddings=self.num_embeddings, embedding_dim=self.embedding_dim, device=self.device)
 
     def forward(self, x):
-        # We add one extra embeddings, not used for position, but as the class embedding
         positional_ints = torch.arange(0, self.num_embeddings, requires_grad=False, device=self.device
                                        ).repeat(x.shape[0], 1)
         embedding = self.embedding(positional_ints)
         return embedding
 
 
-
 class TransformerBlock(nn.Module):
     def __init__(self, model_settings, dropout=0.1, causal=False):
         """ 
+        Classic Transformer Block, optional argument to use causal version of transformer
         """
         super(TransformerBlock, self).__init__()
         self.embedding_dim = model_settings["embedding_dim"]
@@ -56,6 +56,7 @@ class TransformerBlock(nn.Module):
         hidden_dim = self.embedding_dim * 4
         self.causal = causal
         self.device = model_settings["device"]
+        self.context_length = model_settings["context_length"]
 
         self.layer_norm_1 = nn.LayerNorm(self.embedding_dim)
         self.attention = nn.MultiheadAttention(self.embedding_dim, self.heads,
@@ -63,7 +64,8 @@ class TransformerBlock(nn.Module):
         self.layer_norm_2 = nn.LayerNorm(self.embedding_dim)
         
         if self.causal:
-            attention_mask = torch.full((1025,1025), -float("Inf"), device=self.device)
+            seq_len = self.context_length + 1 # for sos
+            attention_mask = torch.full((seq_len,seq_len), -float("Inf"), device=self.device)
             self.attention_mask = torch.triu(attention_mask, diagonal=1)
         
 
@@ -85,46 +87,3 @@ class TransformerBlock(nn.Module):
         x = x + self.linear(self.layer_norm_2(x))
 
         return x   
-
-
-
-class VIT(nn.Module):
-    """ """
-
-    def __init__(self, model_settings):
-        """ 
-        """
-        super(VIT, self).__init__()
-        self.num_channels = model_settings["num_channels"]
-        self.input_shape = model_settings["input_shape"]
-        self.embedding_size = model_settings["embedding_dim"]
-        self.device = model_settings["device"]
-
-        self.patch_embedding = PatchEmbedding(model_settings)
-        self.positional_embedding = PositionalEmbedding(self.patch_embedding.num_patches, model_settings)
-
-        self.transformers = nn.Sequential(*[TransformerBlock(model_settings) for i in range(model_settings["transformer_layers"])])
-
-        self.dropout = nn.Dropout(0.1)
-
-        self.mlp_head = nn.Sequential(
-            nn.LayerNorm(self.embedding_size),
-            nn.Linear(self.embedding_size, 10)
-        )
-
-
-
-    def forward(self, x):
-
-        x = self.patch_embedding(x) 
-        pos_embeddings = self.positional_embedding(x) # Also includes extra embeddings for class tokens
-        x = x + pos_embeddings
-
-        x = self.dropout(x)
-
-        x = self.transformers(x)
-        classification_tokens = x[:,0,:]
-        x = self.dropout(x)
-        x = self.mlp_head(classification_tokens)
-
-        return x

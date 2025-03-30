@@ -55,17 +55,29 @@ def train_autoregressive(settings):
         img.save("validation.png") 
 
 if __name__ == "__main__":
-    setings = {
-        "input_data" : "datasets/x-ray/discrete.pt",
-        "model_settings": {
-            "num_channels": 1,
-            "input_shape": (256,256),
-            "num_hidden": 64,
-            "num_residual_hidden": 32,
+    settings = {
+        "dataset": "celebA",
+        "save_model": True,
+
+        "print_debug": False,
+        "example_image_amount": 4,
+        "save_reconstructions_first_epoch": True,
+        "batch_size": 16,
+        "learning_rate": 3e-4, # for x-ray
+        "max_epochs": 100000,
+        "early_stopping_epochs": 3,
+
+        "model_settings" : {
+            "encoder_architecture": "VIT",
+            "decoder_architecture": "VIT",
+            "num_hidden": 128,
+            "num_residual_hidden": 128,
             "embedding_dim": 64,
             "num_embeddings": 512,
-            "commitment_cost": 0.5,
-            "dir": "models/saved_models/x-ray/model.pt",
-        }
+            "commitment_cost": 0.25,
+            "transformer_layers": 5,
+            "attention_heads": 4,
+            "patch_size": 8,
         }
     }
+    train
