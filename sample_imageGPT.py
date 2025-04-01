@@ -18,7 +18,7 @@ def train_imageGPT(settings_imageGPT, settings_VQVAE):
 
     device = "cpu"
     print(f"Device: {device}" + "\n")
-    """
+    
     # Load models
     model_settings_imageGPT = settings_imageGPT["model_settings"]
     model_settings_imageGPT["num_channels"] =  1
@@ -32,7 +32,7 @@ def train_imageGPT(settings_imageGPT, settings_VQVAE):
 
     with torch.no_grad():
         image_tokens = torch.Tensor().long()
-        padding_tokens = torch.zeros((1,1), dtype=torch.long)
+        padding_tokens = torch.zeros((3,1), dtype=torch.long)
         for i in range((32*32)):
 
             input_tokens = torch.cat((image_tokens, padding_tokens), dim=1)
@@ -44,8 +44,7 @@ def train_imageGPT(settings_imageGPT, settings_VQVAE):
             if i % 100 == 0:
                 print(i)
 
-         
-    """
+    image_tokens = image_tokens.reshape((image_tokens.shape[0], 32, 32))
     
     model_settings_VQVAE = settings_VQVAE["model_settings"]
     model_settings_VQVAE["num_channels"] =  3
@@ -59,8 +58,8 @@ def train_imageGPT(settings_imageGPT, settings_VQVAE):
 
     with torch.no_grad():
         outputs = model_VQVAE.decode_latents(image_tokens)
-
-    grid = plot_grid_samples_tensor(outputs[:1].cpu())
+    print(outputs)
+    grid = plot_grid_samples_tensor(outputs[:3].cpu())
     
     foldername = "generated_samples/"
     grid = grid.movedim(0,-1)
@@ -83,9 +82,9 @@ if __name__ == "__main__":
         "save_model": True,
         "model_settings" : {
             "num_hidden": 128,
-            "embedding_dim": 64,
+            "embedding_dim": 384,
             "num_embeddings": 512,
-            "transformer_layers": 5,
+            "transformer_layers": 8,
             "attention_heads": 4,
             "vocabulary_size": 512
         }
@@ -95,7 +94,7 @@ if __name__ == "__main__":
         "model_settings" : {
             "encoder_architecture": "VIT",
             "decoder_architecture": "VIT",
-            "num_hidden": 64,
+            "num_hidden": 128,
             "num_residual_hidden": 128,
             "embedding_dim": 64,
             "num_embeddings": 512,

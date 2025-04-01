@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import math
 
-from models.transformer import TransformerBlock, PositionalEmbedding, PatchEmbedding
+from models.transformer_vq import TransformerBlock, PositionalEmbedding, PatchEmbedding
 
 
 class EncoderVIT(torch.nn.Module):
@@ -12,7 +12,7 @@ class EncoderVIT(torch.nn.Module):
         super(EncoderVIT, self).__init__()
 
         self.num_hidden = model_settings["num_hidden"]
-        num_residual_hidden = model_settings["num_residual_hidden"]
+
 
         self.num_channels = model_settings["num_channels"]
         self.input_shape = model_settings["input_shape"]

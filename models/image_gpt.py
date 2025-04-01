@@ -41,15 +41,18 @@ class ImageGPT(torch.nn.Module):
             x = x.reshape(x.shape[0], x.shape[1] * x.shape[2]) # 2d to 1d
         
         x = self.embedding(x)
-        x = self.positional_embedding(x) + x
 
         # Adding sos token to start of each images
         
         sos_embeddings = self.get_sos_token_embeddings((x.shape[0], 1))
-        x = torch.concat([sos_embeddings, x], dim=1)
+        x = torch.concat([sos_embeddings, x[:,:-1,:]], dim=1)
+        # We removed the last token to effectively shift the whole image by one pixel.'
+        # This achieves: 1. to be prediced pixel cant use own pixel value as input, 2. last pixel is never needed as input
+
+        x = self.positional_embedding(x) + x
         
         x = self.transformers(x)
-        x = self.decoder_head(x)[:,1:,] # remove SOS
+        x = self.decoder_head(x)
         if not flat_mode:
             x = x.reshape((x.shape[0], original_shape[1], original_shape[2], self.vocabulary_size)) # 1d to 2d
             x = x.movedim(-1, 1)
