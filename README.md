@@ -21,7 +21,8 @@ These samples are fully auto-regressively generated with a temperature of 1.0.
 ### Inpainting
 In the following samples, only the top half of the images from the validation set were used to initialize the auto-regressive process, which was thus auto-regressively completed into a full image.
 
-![image](https://github.com/user-attachments/assets/37d272a9-762f-4dad-aa1f-9f7b5a8864ca)
+![finished](https://github.com/user-attachments/assets/20db894d-95c8-41ab-a1c4-2a8082744711)
+
 
 
 ## Next steps:
