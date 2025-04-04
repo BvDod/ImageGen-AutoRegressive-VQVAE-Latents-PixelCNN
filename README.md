@@ -1,6 +1,6 @@
 # Image Generation: ImageGPT on VQ-VAE latents
 
-<img src="https://github.com/user-attachments/assets/1b86ac91-1306-4e87-843a-a58213b64866" alt="description" width="40%" />
+<img src="https://github.com/user-attachments/assets/1b86ac91-1306-4e87-843a-a58213b64866" alt="description" width="60%" />
 
 In this repository, I generate new high-resolution faces by implementing an ImageGPT-inspired model to autoregressively predict new latents for a ViT-based VQ-VAE I implemented and trained on the CelebA-HQ dataset in an earlier project ([Link](https://github.com/BvDod/Vector-Quantized-ViT-VAE-Image-Reconstruction))
 
