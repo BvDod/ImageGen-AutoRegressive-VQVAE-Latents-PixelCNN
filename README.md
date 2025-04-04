@@ -19,6 +19,7 @@ These samples are fully auto-regressively generated with a temperature of 1.0.
 ![generated](https://github.com/user-attachments/assets/1b86ac91-1306-4e87-843a-a58213b64866)
 
 ### Inpainting
+In the following samples, only the top half of the images from the validation set were used to initialize the auto-regressive process, which was thus auto-regressively completed into a full image.
 
 ## Next steps:
 The autoregressive training (and sampling) currently works in a causal scan-line process. Next, I would like to implement other training and sampling methods, such as Bert-like masking. MaskGIT is also very interesting, which seems to iteravely improve image quality by refineing masked regions of the image.
